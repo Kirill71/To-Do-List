@@ -4,6 +4,7 @@ from sqlalchemy import Column, Integer, String, Date
 from datetime import datetime, timedelta
 from calendar import day_name
 from sqlalchemy.orm import sessionmaker
+from enum import Enum, auto
 
 Base = declarative_base()
 
@@ -121,6 +122,16 @@ def menu():
 
 
 class ICommandHandler:
+    class UserCommand(Enum):
+        SHOW_TODAY_TASKS = auto()
+        SHOW_WEEK_TASKS = auto()
+        SHOW_ALL_TASKS = auto()
+        SHOW_MISSED_TASKS = auto()
+        ADD_TASK = auto()
+        DELETE_TASK = auto()
+
+        def __eq__(self, other):
+            return self.value == other
 
     def __init__(self, task_manager, next_handler):
         self._task_manager = task_manager
@@ -137,7 +148,7 @@ class ShowTodayTasksHandler(ICommandHandler):
         super().__init__(task_manager, ShowWeekTasks(task_manager))
 
     def handle(self, request):
-        if request == '1':
+        if request == self.UserCommand.SHOW_TODAY_TASKS:
             self._task_manager.show_today_tasks()
 
         self._process_next_handler(request)
@@ -148,7 +159,7 @@ class ShowWeekTasks(ICommandHandler):
         super().__init__(task_manager, ShowAllTasks(task_manager))
 
     def handle(self, request):
-        if request == '2':
+        if request == self.UserCommand.SHOW_WEEK_TASKS:
             self._task_manager.show_week_tasks()
 
         self._process_next_handler(request)
@@ -159,7 +170,7 @@ class ShowAllTasks(ICommandHandler):
         super().__init__(task_manager, ShowMissedTasks(task_manager))
 
     def handle(self, request):
-        if request == '3':
+        if request == self.UserCommand.SHOW_ALL_TASKS:
             self._task_manager.show_all_tasks()
 
         self._process_next_handler(request)
@@ -170,7 +181,7 @@ class ShowMissedTasks(ICommandHandler):
         super().__init__(task_manager, AddTaskHandler(task_manager))
 
     def handle(self, request):
-        if request == '4':
+        if request == self.UserCommand.SHOW_MISSED_TASKS:
             self._task_manager.show_missed_task()
 
         self._process_next_handler(request)
@@ -181,7 +192,7 @@ class AddTaskHandler(ICommandHandler):
         super().__init__(task_manager, DeleteTaskHandler(task_manager))
 
     def handle(self, request):
-        if request == '5':
+        if request == self.UserCommand.ADD_TASK:
             print()
             task_name = input('Enter task')
             deadline = input('Enter deadline')
@@ -195,7 +206,7 @@ class DeleteTaskHandler(ICommandHandler):
         super().__init__(task_manager, None)
 
     def handle(self, request):
-        if request == '6':
+        if request == self.UserCommand.DELETE_TASK:
             print()
             self._task_manager.delete_task()
 
@@ -207,8 +218,12 @@ if __name__ == '__main__':
     commandHandler = ShowTodayTasksHandler(task_manager)
     while True:
         menu()
-        request = input()
-        if request == '0':
-            print('Bye!')
-            break
-        commandHandler.handle(request)
+        try:
+            request = int(input())
+            if request == 0:
+                print('Bye!')
+                break
+            commandHandler.handle(request)
+        except ValueError:
+            print('User command should be integer type value from 0 to 6')
+            print()
